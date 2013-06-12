@@ -3,6 +3,7 @@ import re
 from django.contrib.gis.measure import D
 from tastypie import fields
 from tastypie.serializers import Serializer
+from django.contrib.gis.geos import Polygon
 from boundaryservice.serializers import BoundaryGeoSerializer
 from boundaryservice.serializers import BoundarySetGeoSerializer
 
@@ -87,13 +88,11 @@ class BoundaryResource(SluggedResource):
 
         if 'sets' in filters:
             sets = filters['sets'].split(',')
-
             orm_filters.update({'set__slug__in': sets})
 
         if 'contains' in filters:
             lat, lon = filters['contains'].split(',')
             wkt_pt = 'POINT(%s %s)' % (lon, lat)
-
             orm_filters.update({'shape__contains': wkt_pt})
 
         if 'near' in filters:
@@ -103,13 +102,17 @@ class BoundaryResource(SluggedResource):
             unit = range[len(numeral):]
             numeral = int(numeral)
             kwargs = {unit: numeral}
-
             orm_filters.update({'shape__distance_lte': (wkt_pt, D(**kwargs))})
 
         if 'intersects' in filters:
             slug = filters['intersects']
             bounds = Boundary.objects.get(slug=slug)
+            orm_filters.update({'shape__intersects': bounds.shape})
 
-            orm_filters.update({'shape__intersects': bounds.shape})            
+        if 'bbox' in filters:
+            xmin, ymin, xmax, ymax = filters['bbox'].split(",")
+            bbox = (xmin, ymin, xmax, ymax)
+            bbox = Polygon.from_bbox(bbox)
+            orm_filters.update({'shape__intersects': bbox})
 
         return orm_filters
