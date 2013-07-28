@@ -57,7 +57,7 @@ class BoundaryResource(SluggedResource):
         Allow the selection of simple, full or no shapes using a query parameter.
         """
         shape_type = request.GET.get('shape_type', 'simple')
-        data['shape_type'] = 'shape'
+        data['shape_type'] = shape_type
         for obj in data['objects']:
             if shape_type == 'full':
                 del obj.data['simple_shape']
